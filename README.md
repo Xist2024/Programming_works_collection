@@ -1,8 +1,7 @@
 # Programming_works_collection
 编程作品合集
 
-ChatBot Arena.py
-通过Python实时爬取https://openlm.ai/chatbot-arena/获取最新大模型榜单信息
+ChatBot Arena.py  通过Python实时爬取https://openlm.ai/chatbot-arena/获取最新大模型榜单信息
 
 
 Find it！.py
