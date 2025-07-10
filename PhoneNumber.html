@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国大陆手机号码价值评估 (权重优化版)</title>
+    <style>
+        /* --- 基本样式 (与之前版本一致) --- */
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --error-color: #dc3545;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --super-pattern-color: #e83e8c; /* 超级模式用粉色 */
+            --light-gray: #f8f9fa;
+            --medium-gray: #dee2e6;
+            --dark-gray: #6c757d;
+            --text-color: #333;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 顶部对齐 */
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 25px 30px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        /* --- 输入区域 (与之前版本一致) --- */
+        .input-area {
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            text-align: left;
+            color: var(--dark-gray);
+        }
+
+        #phoneNumberInput {
+            width: calc(100% - 22px); /* 考虑内边距 */
+            padding: 10px;
+            border: 1px solid var(--medium-gray);
+            border-radius: 4px;
+            font-size: 1.1em;
+            text-align: center;
+        }
+        #phoneNumberInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        #evaluateButton {
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, opacity 0.3s ease;
+            position: relative; /* 用于加载动画 */
+        }
+
+        #evaluateButton:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+        }
+
+        #evaluateButton:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        #evaluateButton.processing::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            margin-top: -8px;
+            margin-left: 10px; /* 文字和加载圈的间距 */
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* --- 结果区域 (增加超级模式样式) --- */
+        #resultsContainer {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #f0f8ff; /* 淡蓝色背景 */
+            border: 1px solid #cce5ff;
+            border-radius: 6px;
+            text-align: left;
+        }
+
+        #resultsContainer h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+            text-align: center;
+            border-bottom: 1px solid var(--medium-gray);
+            padding-bottom: 10px;
+        }
+
+        #resultsContainer p, #resultsContainer div {
+            margin-bottom: 12px;
+            font-size: 1.05em;
+        }
+
+        #resultNumberSpan, #resultValueSpan {
+            font-weight: bold;
+            font-size: 1.2em; /* 关键结果字体稍大 */
+            color: var(--success-color);
+        }
+         #resultNumberSpan {
+             color: var(--primary-color);
+         }
+
+        #resultOperatorSpan {
+            font-style: italic;
+            color: var(--dark-gray);
+        }
+
+        #resultFeaturesDiv h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: var(--info-color);
+            font-size: 1.2em;
+            border-bottom: 1px dashed var(--medium-gray);
+            padding-bottom: 5px;
+        }
+
+        #resultFeaturesList {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 0;
+        }
+
+        #resultFeaturesList li {
+            padding: 6px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95em;
+        }
+       #resultFeaturesList li:last-child {
+            border-bottom: none;
+       }
+
+        .feature-desc {
+            flex-grow: 1;
+            padding-right: 10px;
+        }
+        .feature-points {
+            font-weight: bold;
+            min-width: 60px; /* 稍微加宽以容纳+/-号 */
+            text-align: right;
+        }
+        .super-boost { /* 超级模式加成提示 */
+            color: var(--super-pattern-color);
+            font-style: italic;
+            font-size: 0.9em;
+            margin-left: 4px;
+        }
+
+        /* 特征类型样式 */
+        .feature-type-positive { color: var(--success-color); }
+        .feature-type-negative { color: var(--error-color); }
+        .feature-type-info { color: var(--dark-gray); }
+        .feature-type-pattern,
+        .feature-type-segment { color: var(--info-color); }
+        .feature-type-base { color: var(--text-color); }
+        .feature-type-trend { color: #fd7e14; } /* 橙色 */
+        .feature-type-super { color: var(--super-pattern-color); } /* 超级模式分数样式 */
+
+
+        /* --- 错误消息 (与之前版本一致) --- */
+        #errorMessage {
+            color: var(--error-color);
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-weight: bold;
+            display: none; /* 默认隐藏 */
+            text-align: center;
+        }
+
+        /* --- 辅助类 (与之前版本一致) --- */
+        .hidden {
+            display: none;
+        }
+
+        /* --- 响应式设计 (与之前版本一致) --- */
+        @media (max-width: 640px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 20px 15px;
+            }
+            h1 {
+                font-size: 1.6em;
+            }
+            #phoneNumberInput, #evaluateButton {
+                font-size: 1em;
+            }
+            #resultsContainer {
+                padding: 15px;
+            }
+            #resultsContainer h2 {
+                font-size: 1.3em;
+            }
+            #resultsContainer p, #resultsContainer div {
+                font-size: 1em;
+            }
+             #resultFeaturesList li {
+                 font-size: 0.9em;
+             }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>手机号码价值评估 (权重优化版)</h1>
+        <p style="color: var(--dark-gray); margin-top:-15px; margin-bottom: 20px; font-size: 0.9em;">根据市场流行度、高级号码组合及特殊规则进行估算</p>
+
+        <div class="input-area">
+            <label for="phoneNumberInput">输入11位中国大陆手机号码:</label>
+            <input type="tel" id="phoneNumberInput" placeholder="例如: 138 8888 8888" maxlength="13">
+            <button id="evaluateButton">
+                <span id="buttonText">查询与评估</span>
+            </button>
+        </div>
+
+        <div id="errorMessage" class="hidden"></div>
+
+        <div id="resultsContainer" class="hidden">
+            <h2>评估结果</h2>
+            <p>号码: <span id="resultNumberSpan"></span></p>
+            <p>运营商: <span id="resultOperatorSpan"></span></p>
+            <p>估算价值分数: <span id="resultValueSpan"></span></p> <!-- 显示价格估算字符串 -->
+            <p>价值等级: <span id="resultCategorySpan"></span></p>
+
+            <div id="resultFeaturesDiv">
+                <h3>分数构成明细:</h3>
+                <ul id="resultFeaturesList"></ul>
+            </div>
+             <p style="font-size: 0.8em; color: var(--dark-gray); margin-top: 15px; text-align: center;">
+                * 评估结果基于预设规则，侧重高级组合价值，仅供参考，不代表实际市场交易价格。
+             </p>
+        </div>
+    </div>
+
+    <script>
+        // --- 配置项 (估值相关) - 权重优化 ---
+        const operatorPrefixes = { // 用于基础运营商信息
+            '中国移动': /^(13[4-9]|14[78]|15[0-2,7-9]|17[28]|18[2-4,7-8]|19[5,7,8])\d{8}$/,
+            '中国联通': /^(13[0-2]|14[56]|15[56]|16[67]|17[1,5,6]|18[56]|196)\d{8}$/,
+            '中国电信': /^(133|14[19]|153|17[347]|18[019]|19[0,1,3,9])\d{8}$/,
+            '中国广电': /^(192)\d{8}$/,
+            '虚拟运营商': /^(170|171|162|165|167)\d{8}$/ // 简化名称
+        };
+        const operatorPrefixesFuzzy = { // 用于模糊匹配运营商信息
+            '中国移动 (可能)': /^(13[4-9]|14[78]|15[0-2,7-9]|17[28]|18[2-4,7-8]|19[5,7,8])/,
+            '中国联通 (可能)': /^(13[0-2]|14[56]|15[56]|16[67]|17[1,5,6]|18[56]|196)/,
+            '中国电信 (可能)': /^(133|14[19]|153|17[347]|18[019]|19[0,1,3,9])/,
+            '中国广电 (可能)': /^(192)/,
+            '虚拟运营商 (可能)': /^(170|171|162|165|167)/
+        };
+
+        const scoringConfig = {
+            baseScore: 30, // 基础分
+            marketTrendMultiplier_2025: 1.05, // 市场趋势乘数 (代表整体积极前景/通胀)
+            superMultiplier: 1.5, // 新: 超级模式乘数
+            superPatternKeys: new Set([ // 新: 可获得超级乘数的模式键名集合 (侧重长/复杂/稀有模式)
+                // 长豹子 (结尾) - 8位最长结尾
+                'end-leopard-8-8', 'end-leopard-6-8', 'end-leopard-9-8', 'end-leopard-0-8',
+                'end-leopard-7-8', 'end-leopard-1-8', 'end-leopard-2-8','end-leopard-3-8', 'end-leopard-5-8',
+                 // 长豹子 (结尾) - 7位结尾
+                'end-leopard-8-7', 'end-leopard-6-7', 'end-leopard-9-7', 'end-leopard-0-7',
+                'end-leopard-7-7', // 7个7结尾也算较好
+                 // 长豹子 (结尾) - 6位结尾 (仅限传统吉祥数字)
+                'end-leopard-8-6', 'end-leopard-6-6', 'end-leopard-9-6', 'end-leopard-0-6',
+                 // 显式高价值结尾
+                'end-8-88888888', 'end-6-66666666', // 8个8, 8个6
+                'end-8-66668888', 'end-8-88886666', // AAAA BBBB 结构结尾
+                'end-7-5201314', // 特殊组合结尾
+                'end-8-13141314', 'end-8-52052052', // 重复特殊组合结尾
+                // 长顺子 (结尾) - 6位及以上
+                'end-straight-asc-6', 'end-straight-asc-7', 'end-straight-asc-8',
+                'end-straight-desc-6', 'end-straight-desc-7', 'end-straight-desc-8',
+                // 顶级结构模式 (结尾)
+                'end-8-AAAABBBB', 'end-8-ABABABAB', 'end-8-AABBCCDD',
+                'end-6-ABCABC', 'end-6-AABBCC', 'end-9-ABCABCABC', // 6位和9位结构
+                // 全局长模式
+                'global-straight-asc-9', 'global-straight-asc-10', 'global-straight-asc-11',
+                'global-straight-desc-9', 'global-straight-desc-10', 'global-straight-desc-11',
+                'globalCombo-5201314', // 全局包含重要组合
+                'global-consecutive4-8', 'global-consecutive4-7', // 特殊的连4也给予加成
+            ]),
+            weights: { // 不同部分得分的权重 - 已调整
+                ending: 1.0,   // 结尾模式得分 (最高权重)
+                middle4: 0.6,  // 中间4位模式得分 (权重较高)
+                first3: 0.1,   // 特定前3位号段加分 (影响较低)
+                global: 0.4    // 全局模式得分 (如11位顺子) (权重较高)
+            },
+            digitScores: { // 单个数字的基础喜好度/惩罚 - '4'的惩罚已降低
+                '8': 10,  // 正面
+                '6': 8,   // 正面
+                '9': 4,
+                '7': 1,
+                '0': 0,
+                '1': 1,
+                '2': 1,
+                '3': 2,
+                '5': 2,
+                '4': -15  // 惩罚降低25% (原为-20)
+            },
+            negativeFactors: { // 特定负面模式的惩罚 - '4'相关惩罚已降低
+                // '4'出现次数的基础惩罚 (可能被4444+规则覆盖) - 已降低约25%
+                count4Penalty: [-7, -22, -60, -150, -375], // 原: [-10, -30, -80, -200, -500]
+                // 结尾含4的惩罚 (如果不适用于44, 74, 14, 114, 748或4444+规则) - 已降低
+                ending4Penalty: -110, // 原: -150
+                // 结尾为X4 (X非4, 7, 1) 的惩罚 (如果不适用于4444+) - 已降低
+                endingX4Penalty: -60,  // 原: -80
+                // 特定不吉利结尾
+                ending74Penalty: -200, // 结尾'74' (去死)
+                ending14Penalty: -180, // 结尾'14' (幺四/要死)
+                ending114Penalty: -250, // 结尾'114' (要要死)
+                ending748Penalty: -300, // 结尾'748' (去死吧)
+                ending53Penalty: -100, // 结尾'53' ('我散')
+                ending250Penalty: -300,// 结尾'250' ('二百五')
+                // 中间4位含'4'的惩罚 (除非是4444) - 已降低
+                middle4SeqPenalty: -40, // 原: -50
+                dispersedZerosPenalty: -40, // 分散的'0' (如 10101)
+                unluckyComboPenalty: -60 // 通用惩罚 (如果发现多个次要坏模式)
+            },
+            patterns: {
+                 // --- 新: 连续'4'的特殊处理 (小众价值) ---
+                 consecutive4Value: { // 对长连'4'给予正分, 覆盖这些数字的负面惩罚
+                    4: 500,   // 4444
+                    5: 1500,  // 44444
+                    6: 4000,  // 444444
+                    7: 8000,  // 4444444
+                    8: 15000  // 44444444
+                },
+                // --- 模式分数 (加分项) ---
+                leopard: { // AAA, AAAA, ... (重复数字) - 注意: 444+ 已单独处理
+                           // 分数略微上调以体现稀有性
+                    '8': { 3: 2000, 4: 12500, 5: 65000, 6: 160000, 7: 420000, 8: 1050000 },
+                    '6': { 3: 1500, 4: 9500,  5: 42000, 6: 105000, 7: 260000, 8: 630000 },
+                    '9': { 3: 1000, 4: 6500,  5: 27000, 6: 75000,  7: 190000, 8: 420000 },
+                    '7': { 3: 500,  4: 2000,  5: 8000,  6: 20000,  7: 50000,  8: 100000 }, // 7相对普通
+                    '0': { 3: 800,  4: 3000,  5: 10000, 6: 25000,  7: 60000,  8: 120000 }, // 0在连号中价值较高
+                    '1': { 3: 300,  4: 1000,  5: 4000,  6: 10000,  7: 25000,  8: 50000 },
+                    '2': { 3: 300,  4: 1000,  5: 4000,  6: 10000,  7: 25000,  8: 50000 },
+                    '3': { 3: 350,  4: 1200,  5: 5000,  6: 12000,  7: 30000,  8: 60000 },
+                    '5': { 3: 350,  4: 1200,  5: 5000,  6: 12000,  7: 30000,  8: 60000 },
+                    '4': { 3: -500 } // 保留对444的惩罚, 更长连4已单独处理
+                },
+                straight: { // 123, 2345, ... (顺序数字)
+                    // 长度: 分数 (高端分数略微上调)
+                    3: 100, 4: 400, 5: 1500, 6: 6500, 7: 17000, 8: 42000, 9: 95000, 10: 190000, 11: 370000
+                },
+                descendingStraightMultiplier: 0.65, // 降序顺子 (如987) 的分数乘数
+                stepStraightMultiplier: 0.7, // 步进顺子 (如135, 246) 的分数乘数
+
+                // 其他重复/结构模式 (基础分 - 微调)
+                AAABBB: 4500,    // 如 888666
+                AAAABBBB: 9000,   // 如 88886666
+                AABBCC: 2800,    // 如 112233
+                AABBCCDD: 6000,   // 如 11223344
+                ABCABC: 3000,    // 如 123123
+                ABCABCABC: 7000,  // 如 123123123
+                ABABAB: 2800,    // 如 121212
+                ABABABAB: 6500,   // 如 12121212
+                AABB: 1000,      // 如 1122
+                AAAA_BBBB: 7500,  // 特指 AAAA 后面跟 BBBB 结构 (如在后8位)
+                ABAB: 800,       // 如 1212
+                ABBA: 700,       // 如 1221
+                AABAA: 1500,     // 如 11211
+                ABBAB: 1200,     // 如 12212
+                AABBC: 400,      // 如 11223
+                ABBCC: 500,      // 如 12233
+                AABCD: 300,      // 如 11234 (普通模式)
+                AAABBC: 600,     // 如 111223
+                AABBAC: 550,     // 如 112213
+
+                specialCombos: { // 特定数字组合 (全局检查) - 负面组合分数也相应调整
+                    // 吉祥/特殊含义组合
+                    '520': 500, '521': 450, '1314': 800, '3344': 600, '5201314': 16000, '99': 200, // 5201314 提高
+                    '775': 200, '880': 300, '530': 250, '770': 250, '168': 600, '518': 550, '668': 900,
+                    '886': 900, '998': 800, '158': 400, '178': 500, '186': 500, '598': 500, '995': 400,
+                    '1688': 3000, '1588': 2500, '5858': 4000, '6868': 5000, '8686': 5000, '9898': 4500,
+                    '258': 300, '788': 400, '369': 150, '156': 100, '157': 100, '159': 100,
+                    '520520': 8500, '13141314': 11000, '1122': 500, '2233': 500, '7788': 700, // 重复组合提高
+                    // 负面组合 (全局检查) - '4' 相关惩罚降低
+                    '110': -100, '120': -100, '119': -100,
+                    '114': -110, // 原 -150 -> -112 -> -110
+                    '74': -60,   // 原 -80 -> -60
+                    '748': -110, // 原 -150 -> -112 -> -110 (因为含74, 基础惩罚降低)
+                    '514': -110  // 原 -150 -> -112 -> -110 (因为含14, 基础惩罚降低)
+                },
+                palindromeScore: 500, // 回文得分 (如后6位 123321)
+
+                // --- 结尾特定分数 ---
+                // 注意: 长匹配优先。 4444+ 已预先单独处理。
+                endingSpecials: {
+                    // 单数字结尾 (4的惩罚降低)
+                    '8': 100, '6': 80, '9': 50, '0': 30, '7': 10, '1': 10, '2': 10, '3': 15, '5': 15, '4': -110, // 原 -150 -> -110
+                    // 双数字结尾 (AA) (44惩罚未降低，保持高惩罚)
+                    '88': 1500, '66': 1200, '99': 900, '00': 500, '77': 300, '11': 200, '22': 200, '33': 250, '55': 250, '44': -1000, // 保留对44结尾的高惩罚
+                    // 双数字结尾 (吉祥 AB)
+                    '68': 600, '86': 600, '18': 400, '58': 400, '98': 500, '89': 450, '69': 400, '96': 400, '38': 300, '56': 200, '65': 200,
+                    // 三数字结尾 (AAA - 豹子) (444惩罚未降低)
+                    '888': 10000, '666': 7000, '999': 5000, '000': 2500, '777': 1500, '111': 1000, '222': 1000, '333': 1200, '555': 1200, '444': -5000, // 保留对444结尾的高惩罚
+                     // 三数字结尾 (吉祥 ABC / 组合)
+                    '168': 2000, '518': 1800, '668': 3000, '886': 3000, '998': 2500, '158': 1500, '258': 1000,
+                    '520': 3500, '521': 3000,
+                    // 四数字结尾 (AAAA - 豹子)
+                    '8888': 80000, '6666': 50000, '9999': 30000, '0000': 15000, '7777': 8000, '1111': 5000, '2222': 5000, '3333': 6000, '5555': 6000,
+                    // 注意: 4444 结尾分数由 consecutive4Value 规则处理
+                     // 四数字结尾 (其他模式)
+                    'AABB': 2500, // 通用基准, 具体如下
+                    '1122': 1000, '2211': 1000, '3355': 1200, '5533': 1200, '7788': 800, '8866': 4500, '6688': 4500, '9988': 4000, '8899': 4000, '6699': 3500, '9966': 3500, '1188': 2800, '8811': 2800, '6611': 2000, '1166': 2000,
+                    'ABAB': 2000, // 通用基准, 具体如下
+                    '1212': 800, '3434': 800, '1616': 1500, '1818': 2000, '5858': 6500, '6868': 7500, '8686': 7500, '9898': 7000, '5959': 2200, '7878': 1500,
+                    'ABBA': 1800, // 如 1221, 6886
+                    'AAAB': 1500, // 通用基准, 具体如下
+                    '8886': 6500, '6668': 6000, '9998': 5000, '8880': 2500, '6660': 1800, '1110': 600,
+                    'ABBB': 1500, // 通用基准, 具体如下
+                    '6888': 7000, '8666': 6500, '8999': 5500,
+                    '1000': 800, '2000': 800, '5000': 1000, '8000': 1500, // 以 000 结尾
+                    // 四数字结尾 (吉祥组合)
+                    '1314': 5500, '3344': 3000, '7758': 800, '2580': 1000, '1788': 1200, '5888': 5500, '1688': 5000, '1588': 4500, '5200': 1000, '5208': 1200, '3399': 2000,
+                    // 四数字结尾 (顺子 - 使用通用顺子逻辑计算分数)
+                    // ...
+                    // 五数字结尾 (主要分数来自豹子/顺子规则)
+                    '88888': 65000, '66666': 42000, // 来自 leopard 分数 * endingWeight
+                    '12345': 1500, '54321': 1500 * 0.65, // 来自 straight 分数 * endingWeight
+                    '52000': 2000, '13140': 2500, // 组合 + 0
+                    // 六数字结尾
+                    '888888': 160000, '666666': 105000,
+                    '123456': 6500, '654321': 6500 * 0.65,
+                    '520520': 8500, '131414': 11000, // 分数已在 specialCombos 中调整
+                    'AABBCC': 5500, 'ABCABC': 6500, 'ABABAB': 4500, // 使用 structure 分数
+                    // 更长结尾 (主要分数来自豹子/顺子/结构规则)
+                    '8888888': 420000, '6666666': 260000,
+                    '1234567': 17000, '7654321': 17000 * 0.65,
+                    '5201314': 25000, // 结尾是这个组合本身的分数
+                    '88888888': 1050000, '66666666': 630000,
+                    '12345678': 42000, '87654321': 42000 * 0.65,
+                    '66668888': 30000, '88886666': 30000, // AAAA BBBB 结尾
+                },
+                // 号段加分 (基于前3位) - 使用 first3 权重
+                segmentBonus: { // 无变化
+                    '139': 50, '138': 40, '137': 30, '136': 20, '135': 20, '134': 10, '133': 40, '153': 15,
+                    '189': 15, '180': 10, '181': 10, '130': 30, '131': 20, '132': 15, '156': 15, '186': 20,
+                    '185': 15, '150': 10, '151': 10, '152': 10, '157': 5, '159': 15, '158': 15, '188': 15, '166': 15,
+                    '177': 8, '178': 8,
+                    '198': 15, '199': 15, '192': 12, '196': 12, '195': 12, '197': 12, '193': 12, '191': 12, '190': 12,
+                },
+                genericSegmentBonus: { // 通用号段加分 (如果上面未匹配) - 无变化
+                    '17': 5, '16': 5, '19': 10, '14': 3
+                }
+            }
+        };
+
+
+        // --- DOM 元素获取 (与之前版本一致) ---
+        const domElements = {
+            phoneNumberInput: document.getElementById('phoneNumberInput'),
+            evaluateButton: document.getElementById('evaluateButton'),
+            buttonText: document.getElementById('buttonText'),
+            errorMessage: document.getElementById('errorMessage'),
+            resultsContainer: document.getElementById('resultsContainer'),
+            resultNumberSpan: document.getElementById('resultNumberSpan'),
+            resultOperatorSpan: document.getElementById('resultOperatorSpan'),
+            resultValueSpan: document.getElementById('resultValueSpan'),
+            resultCategorySpan: document.getElementById('resultCategorySpan'),
+            resultFeaturesDiv: document.getElementById('resultFeaturesDiv'),
+            resultFeaturesList: document.getElementById('resultFeaturesList'),
+        };
+
+        // --- 状态变量 (与之前版本一致) ---
+        let isProcessing = false;
+
+        // --- 工具函数 (与之前版本一致) ---
+        function logError(error, context = "通用") { // 日志记录错误
+            console.error(`[${context}] 错误:`, error.message, error.stack);
+        }
+
+        function checkDOMIntegrity() { // 检查必要的DOM元素是否存在
+            for (const key in domElements) {
+                if (!domElements[key]) {
+                    console.error(`DOM 元素缺失: ${key}。评估无法进行。`);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function displayError(message) { // 显示错误消息
+            if (!domElements.errorMessage || !domElements.resultsContainer) return;
+            domElements.errorMessage.textContent = message;
+            domElements.errorMessage.style.display = 'block'; // 显示错误
+            domElements.resultsContainer.classList.add('hidden'); // 隐藏结果区域
+            domElements.resultsContainer.style.display = 'none';
+        }
+
+       function resetUI(clearInput = true) { // 重置用户界面
+             console.log("重置界面...");
+            if (!domElements.errorMessage || !domElements.resultsContainer || !domElements.evaluateButton || !domElements.buttonText) {
+                console.error("无法重置界面，关键元素缺失。");
+                return;
+            }
+
+            if (clearInput && domElements.phoneNumberInput) { // 清空输入框
+                domElements.phoneNumberInput.value = '';
+            }
+            domElements.errorMessage.style.display = 'none'; // 隐藏错误消息
+            domElements.errorMessage.textContent = '';
+            domElements.resultsContainer.classList.add('hidden'); // 隐藏结果区域
+            domElements.resultsContainer.style.display = 'none';
+
+
+            // 清空动态内容
+            if (domElements.resultNumberSpan) domElements.resultNumberSpan.textContent = '';
+            if (domElements.resultOperatorSpan) domElements.resultOperatorSpan.textContent = '';
+            if (domElements.resultValueSpan) domElements.resultValueSpan.textContent = '';
+            if (domElements.resultCategorySpan) domElements.resultCategorySpan.textContent = '';
+            if (domElements.resultFeaturesList) domElements.resultFeaturesList.innerHTML = ''; // 清空分数列表
+
+            // 重置按钮状态 (仅在非处理中时)
+            if (!isProcessing) {
+                domElements.evaluateButton.disabled = false;
+                domElements.evaluateButton.classList.remove('processing');
+                 if(domElements.buttonText) domElements.buttonText.textContent = '查询与评估';
+            }
+             console.log("界面重置完成。");
+        }
+
+
+        function formatPhoneNumber(numberStr) { // 格式化手机号 (加空格)
+            return numberStr.replace(/(\d{3})(\d{4})(\d{4})/, '$1 $2 $3');
+        }
+
+        // --- 显示结果 (适配超级模式提示) ---
+        function displayResults(result) {
+             if (!checkDOMIntegrity()) { // 再次检查DOM完整性
+                 displayError("页面组件错误，无法显示结果。");
+                 return;
+            }
+
+            domElements.resultNumberSpan.textContent = result.formattedNumber; // 显示格式化号码
+            domElements.resultOperatorSpan.textContent = result.operator; // 显示运营商
+            domElements.resultValueSpan.textContent = result.estimatedPrice; // 显示估算价格字符串
+            domElements.resultCategorySpan.textContent = result.priceRangeCategory; // 显示价值等级
+
+            domElements.resultFeaturesList.innerHTML = ''; // 清空旧的分数列表
+
+            // 添加基础分
+             const baseLi = document.createElement('li');
+             baseLi.innerHTML = `<span class="feature-desc">基础分</span><span class="feature-points feature-type-base">${result.baseScore.toFixed(0)}</span>`;
+             domElements.resultFeaturesList.appendChild(baseLi);
+
+            // 添加计算出的特征分数
+            result.features.forEach(feature => {
+                if (feature.points === 0 && feature.type === 'info') return; // 跳过0分的信息类特征
+
+                const li = document.createElement('li');
+                let pointClass = 'feature-type-info'; // 默认为信息类或0分
+                let pointsDisplay = feature.points.toFixed(0); // 分数显示文本
+                let superBoostText = ''; // 超级加成提示文本
+
+                 if (feature.isSuperBoosted) { // 检查是否有超级加成标志
+                     pointClass = 'feature-type-super'; // 使用超级模式颜色
+                     superBoostText = `<span class="super-boost">(x${scoringConfig.superMultiplier})</span>`; // 添加加成提示
+                     pointsDisplay = `${feature.points > 0 ? '+' : ''}${pointsDisplay}`; // 对加成的分数显式标明+/-
+                 } else if (feature.points > 0) { // 普通正分
+                     pointClass = 'feature-type-positive';
+                     pointsDisplay = `+${pointsDisplay}`; // 加+号
+                 } else if (feature.points < 0) { // 负分
+                     pointClass = 'feature-type-negative';
+                     // 负分自带-号
+                 } else if (feature.type === 'pattern' || feature.type === 'segment') { // 0分的模式或号段特征
+                     pointClass = 'feature-type-info';
+                 }
+
+                // 如果是具体类型且非0分且非超级加成, 添加类型特定样式类 (如 feature-type-pattern)
+                 if (feature.type && feature.type !== 'info' && feature.points !== 0 && !feature.isSuperBoosted) {
+                     pointClass += ` feature-type-${feature.type}`;
+                 }
+
+
+                li.innerHTML = `
+                    <span class="feature-desc">${feature.desc} ${feature.value ? `(${feature.value})` : ''} ${superBoostText}</span>
+                    <span class="feature-points ${pointClass}">${pointsDisplay}</span>
+                `;
+                domElements.resultFeaturesList.appendChild(li);
+            });
+
+             // 添加市场趋势调整 (如果应用了)
+             if (result.trendFactor !== 1) {
+                 const trendLi = document.createElement('li');
+                 trendLi.innerHTML = `<span class="feature-desc">市场趋势调整 (${(result.trendFactor * 100 - 100).toFixed(1)}%)</span><span class="feature-points feature-type-trend">x ${result.trendFactor.toFixed(2)}</span>`;
+                 domElements.resultFeaturesList.appendChild(trendLi);
+             }
+
+             // 添加最终得分总结
+             const finalScoreLi = document.createElement('li');
+             finalScoreLi.style.fontWeight = 'bold'; // 加粗
+             finalScoreLi.style.marginTop = '10px'; // 顶部间距
+             finalScoreLi.style.borderTop = '1px solid var(--medium-gray)'; // 顶部边框
+             finalScoreLi.style.paddingTop = '10px'; // 顶部内边距
+             // 根据最终分数决定颜色 (高分用绿色, 低分/负分用红色)
+             const finalScoreClass = result.finalScore > 50 ? 'feature-type-positive' : (result.finalScore <= 0 ? 'feature-type-negative' : 'feature-type-info');
+             finalScoreLi.innerHTML = `<span class="feature-desc">调整后总分</span><span class="feature-points ${finalScoreClass}">${result.finalScore.toFixed(0)}</span>`;
+             domElements.resultFeaturesList.appendChild(finalScoreLi);
+
+
+            domElements.errorMessage.style.display = 'none'; // 隐藏任何之前的错误消息
+            domElements.resultsContainer.classList.remove('hidden'); // 显示结果区域
+            domElements.resultsContainer.style.display = 'block';
+        }
+
+        // --- 备用数据创建函数 (与之前版本一致) ---
+        function createDefaultValuation(number) { // 在计算出错时提供默认结果
+            const formattedNumber = formatPhoneNumber(String(number));
+            return {
+                originalNumber: number,
+                formattedNumber: formattedNumber,
+                operator: '查询出错',
+                baseScore: scoringConfig.baseScore,
+                featureScore: 0,
+                trendFactor: scoringConfig.marketTrendMultiplier_2025,
+                finalScore: scoringConfig.baseScore, // 默认最终分
+                features: [{ desc: "估值内部计算错误", points: 0, type: 'negative' }],
+                estimatedPrice: '无法估算', // 默认价格字符串
+                priceRangeCategory: '计算错误' // 默认等级
+            };
+        }
+
+
+        // --- 详细手机号评估逻辑 (权重优化版) ---
+        function evaluatePhoneNumberDetailed(number) {
+            console.time("evaluatePhoneNumberDetailed_Optimized"); // 计时开始
+            const numberStr = String(number); // 确保是字符串
+            let baseScore = scoringConfig.baseScore; // 获取基础分
+            let featureScore = 0; // 初始化特征分数
+            const features = []; // 存储详细分数项
+            const detectedPatterns = new Set(); // 用于避免重复计分模式的键名集合
+            const positive4Indices = new Set(); // 存储被特殊连4规则覆盖的数字索引
+
+            // 号码分段
+            const segments = {
+                first3: numberStr.substring(0, 3),
+                middle4: numberStr.substring(3, 7),
+                last4: numberStr.substring(7, 11),
+                lastN: (n) => numberStr.slice(-n), // 获取后N位
+                full: numberStr // 完整号码
+            };
+
+            // --- 辅助函数: 添加特征分数项 (适配超级模式) ---
+            function addFeature(desc, points, type, patternKey = null, value = null) {
+                 let appliedPoints = points; // 实际应用的分数
+                 let isSuperBoosted = false; // 是否应用了超级加成
+
+                if (patternKey) { // 如果提供了模式键名
+                     if (detectedPatterns.has(patternKey)) { // 检查是否已记录此模式
+                         // console.log(`跳过特征 "${desc}" - 模式键 "${patternKey}" 已检测.`);
+                         return; // 避免重复计分
+                     }
+                      // 检查是否符合超级模式加成条件
+                      if (scoringConfig.superPatternKeys.has(patternKey) && points > 0) { // 仅对正分加成
+                          appliedPoints = points * scoringConfig.superMultiplier; // 应用乘数
+                          isSuperBoosted = true; // 标记为已加成
+                          console.log(`应用超级加成 (x${scoringConfig.superMultiplier}) 于模式: ${patternKey}`);
+                      }
+                 }
+
+                 // 在应用乘数后取整
+                 appliedPoints = Math.round(appliedPoints);
+
+                if (appliedPoints !== 0 || type === 'info') { // 只要分数不为0或类型为'info'就添加
+                     features.push({ desc, points: appliedPoints, type, value, isSuperBoosted }); // 添加特征对象, 包含加成标志
+                     featureScore += appliedPoints; // 累加特征分数 (使用可能已加成的分数)
+                    if (patternKey) { // 如果有键名, 记录下来防止重复
+                         detectedPatterns.add(patternKey);
+                    }
+                }
+            }
+
+            // --- 0. 预处理: 特殊正向评分 - 查找所有4444+连号 ---
+            // 优先处理这种特殊情况, 并标记相关数字索引
+            const consecutive4Regex = /4{4,}/g; // 正则查找4个及以上连续的4
+            let match4;
+            while ((match4 = consecutive4Regex.exec(numberStr)) !== null) {
+                const sequence = match4[0]; // 匹配到的序列 (如 '44444')
+                const length = sequence.length; // 序列长度
+                // 获取分数, 如果超过配置的最大长度, 使用最大长度的分数
+                const score = scoringConfig.patterns.consecutive4Value[length] || scoringConfig.patterns.consecutive4Value[8];
+                const startIndex = match4.index; // 序列开始的索引
+                const patternKey = `global-consecutive4-${length}-${startIndex}`; // 为每次匹配创建唯一键名
+
+                if (score && !detectedPatterns.has(patternKey)) { // 如果有分数且未被记录
+                    addFeature(`特殊连号 (${sequence})`, score, 'pattern', patternKey, sequence); // 添加正分特征
+                    // 标记此序列覆盖的数字索引, 后续不再对这些'4'进行负面评分
+                    for (let i = 0; i < length; i++) {
+                        positive4Indices.add(startIndex + i);
+                    }
+                    // (可选) 标记包含此序列的结尾模式为已处理, 避免冲突
+                    if (startIndex + length === numberStr.length) { // 如果此序列在号码末尾
+                        for(let l=4; l<=length; l++) { // 标记所有相关的结尾豹子/连4模式
+                            detectedPatterns.add(`end-${l}-${'4'.repeat(l)}`);
+                            detectedPatterns.add(`end-leopard-4-${l}`);
+                        }
+                    }
+                }
+            }
+
+
+            // --- 1. 运营商识别 (逻辑同前) ---
+            let operator = '未知/其他';
+            let preciseMatchFound = false;
+             for (const op in operatorPrefixes) {
+                 if (operatorPrefixes[op].test(numberStr)) {
+                     operator = op; preciseMatchFound = true; break;
+                 }
+             }
+             if (!preciseMatchFound) {
+                  for (const opFuzzy in operatorPrefixesFuzzy) {
+                     if (operatorPrefixesFuzzy[opFuzzy].test(numberStr)) {
+                          operator = opFuzzy; break;
+                      }
+                  }
+             }
+             // 运营商信息本身不加分, 只是展示
+
+            // --- 2. 号段加分 (基于前3位 - 使用 first3 权重) ---
+            let segmentBonusRaw = scoringConfig.patterns.segmentBonus[segments.first3]; // 获取原始加分值
+            if (segmentBonusRaw) {
+                addFeature(`特殊号段 (${segments.first3})`, segmentBonusRaw * scoringConfig.weights.first3, 'segment', `seg-${segments.first3}`);
+            } else { // 如果没有匹配到具体的前3位, 检查通用的前2位
+                 const first2 = numberStr.substring(0, 2);
+                 const genericBonusRaw = scoringConfig.patterns.genericSegmentBonus[first2];
+                 if (genericBonusRaw) {
+                     addFeature(`通用号段 (${first2}xx)`, genericBonusRaw * scoringConfig.weights.first3, 'segment', `seg-${first2}xx`);
+                 }
+            }
+
+
+             // --- 3. 负面因素评分 (已适配4444+规则和降低'4'惩罚) ---
+             let nonPositive4Count = 0; // 统计未被4444+规则覆盖的'4'的数量
+             for(let i = 0; i < numberStr.length; i++) {
+                 if (numberStr[i] === '4' && !positive4Indices.has(i)) {
+                     nonPositive4Count++;
+                 }
+             }
+             // 应用基于数量的'4'惩罚 (使用降低后的分数)
+             if (nonPositive4Count > 0 && scoringConfig.negativeFactors.count4Penalty[nonPositive4Count - 1]) {
+                 addFeature(`数字'4'出现 ${nonPositive4Count} 次 (非特殊连号)`, scoringConfig.negativeFactors.count4Penalty[nonPositive4Count - 1], 'negative', 'count4');
+             }
+
+             // 结尾含'4'的惩罚 (检查结尾数字是否在 positive4Indices 中)
+             const lastIndex = numberStr.length - 1; // 最后一位索引
+             if (numberStr.endsWith('4') && !positive4Indices.has(lastIndex)) { // 如果以4结尾且该4未被正面评分
+                 // 优先检查更长、更具体的负面结尾组合
+                  if (numberStr.endsWith('748') && !positive4Indices.has(lastIndex-1) && !positive4Indices.has(lastIndex-2)) {
+                      addFeature(`结尾'748'`, scoringConfig.negativeFactors.ending748Penalty, 'negative', 'end748');
+                  } else if (numberStr.endsWith('114') && !positive4Indices.has(lastIndex-1) && !positive4Indices.has(lastIndex-2)) {
+                      addFeature(`结尾'114'`, scoringConfig.negativeFactors.ending114Penalty, 'negative', 'end114');
+                  } else if (numberStr.endsWith('74') && !positive4Indices.has(lastIndex-1) && !detectedPatterns.has('end748')) { // 结尾'74', 且非'748'的一部分
+                     addFeature(`结尾'74'`, scoringConfig.negativeFactors.ending74Penalty, 'negative', 'end74');
+                  } else if (numberStr.endsWith('14') && !positive4Indices.has(lastIndex-1) && !detectedPatterns.has('end114')) { // 结尾'14', 且非'114'的一部分
+                      addFeature(`结尾'14'`, scoringConfig.negativeFactors.ending14Penalty, 'negative', 'end14');
+                  } else if (!numberStr.endsWith('44') && !detectedPatterns.has('end74') && !detectedPatterns.has('end14') && !detectedPatterns.has('end114') && !detectedPatterns.has('end748')) {
+                      // 如果结尾是单个'4' (前面不是4, 7, 1), 应用结尾含4(非特定组合)的惩罚 (使用降低后的分数)
+                      addFeature(`结尾含'4' (非特殊组合)`, scoringConfig.negativeFactors.endingX4Penalty, 'negative', 'endX4');
+                  }
+                  // 如果没有匹配到任何特定的带4结尾 (如74, 14, 44等), 且结尾是4, 应用通用的结尾4惩罚 (使用降低后的分数)
+                  if (!detectedPatterns.has('end74') && !detectedPatterns.has('end14') && !detectedPatterns.has('end114') && !detectedPatterns.has('end748') && !numberStr.endsWith('44')) {
+                       addFeature(`结尾数字'4'`, scoringConfig.negativeFactors.ending4Penalty, 'negative', 'end4');
+                   }
+             }
+             // 其他特定负面结尾
+             if (numberStr.endsWith('53')) {
+                 addFeature(`结尾'53'`, scoringConfig.negativeFactors.ending53Penalty, 'negative', 'end53');
+             }
+             if (numberStr.endsWith('250')) {
+                 addFeature(`结尾'250'`, scoringConfig.negativeFactors.ending250Penalty, 'negative', 'end250');
+             }
+
+             // 中间4位含'4'的惩罚 (检查索引是否被正面规则覆盖)
+             let middleHasNonPositive4 = false;
+             for(let i = 3; i < 7; i++) { // 检查索引 3, 4, 5, 6
+                 if (numberStr[i] === '4' && !positive4Indices.has(i)) {
+                     middleHasNonPositive4 = true;
+                     break;
+                 }
+             }
+             if (middleHasNonPositive4 && segments.middle4 !== '4444') { // 如果中间含非特殊'4', 且中间不是4444本身
+                 addFeature(`中间号段含'4' (非特殊)`, scoringConfig.negativeFactors.middle4SeqPenalty, 'negative', 'mid4'); // 使用降低后的分数
+             }
+
+             // 分散的'0' (逻辑不变)
+             if (/0[1-9]+0/.test(numberStr)) {
+                 addFeature(`分散的'0'`, scoringConfig.negativeFactors.dispersedZerosPenalty, 'negative', 'dispersed0');
+             }
+
+            // 全局检查负面特殊组合
+            for (const combo in scoringConfig.patterns.specialCombos) {
+                 if (scoringConfig.patterns.specialCombos[combo] < 0 && numberStr.includes(combo)) {
+                      // 简单处理: 如果组合本身不是特殊的正面4连号, 就应用惩罚 (使用调整后的分数)
+                      if (!/4{4,}/.test(combo)) {
+                           addFeature(`含不吉利组合 (${combo})`, scoringConfig.patterns.specialCombos[combo], 'negative', `negCombo-${combo}`);
+                      }
+                 }
+            }
+
+
+             // --- 4. 基础数字喜好度评分 (仅对未被4444+规则覆盖的数字计算, 且降低了整体影响权重) ---
+             let digitScoreTotal = 0;
+             for (let i = 0; i < numberStr.length; i++) {
+                 if (!positive4Indices.has(i)) { // 只计算未被特殊连4规则覆盖的数字
+                      digitScoreTotal += scoringConfig.digitScores[numberStr[i]] || 0; // 累加单数字得分
+                 }
+             }
+             // 添加一个汇总的基础数字得分项, 乘以较低的权重 (0.08)
+             addFeature("基础数字喜好度 (非特殊4)", digitScoreTotal * 0.08, 'positive', 'digitScoreBase');
+
+
+            // --- 5. 模式匹配 (结尾 > 中间 > 全局; 长模式优先) ---
+            const endingWeight = scoringConfig.weights.ending; // 结尾权重 (最高)
+            const middleWeight = scoringConfig.weights.middle4; // 中间权重 (较高)
+            const globalWeight = scoringConfig.weights.global; // 全局权重 (较高)
+
+            // --- 5.A 结尾模式匹配 (最高优先级, 从长到短检查) ---
+            // let endingPatternFound = false; // 标记是否找到显著结尾模式 (用于可能的优化, 暂未使用)
+            for (let len = 8; len >= 1; len--) { // 从后8位检查到后1位
+                 const ending = segments.lastN(len); // 获取当前检查的结尾段
+                 let patternKeyBase = `end-${len}-${ending}`; // 基础模式键名
+
+                  // 如果此结尾模式已被4444+规则处理或已被更长模式覆盖, 跳过
+                  if (detectedPatterns.has(patternKeyBase)) {
+                     continue;
+                  }
+
+                 // 1. 检查是否完全匹配 `endingSpecials` 中的特定结尾
+                 if (scoringConfig.patterns.endingSpecials[ending] !== undefined) {
+                     // 检查是否是更长已检测模式的子串, 避免重复计分 (例如检测到8888后不再计888)
+                      let alreadyCoveredByLonger = false;
+                      for(let longerLen = len + 1; longerLen <= 8; longerLen++){
+                          const longerEnding = segments.lastN(longerLen);
+                          if(detectedPatterns.has(`end-${longerLen}-${longerEnding}`) && longerEnding.endsWith(ending)) {
+                              alreadyCoveredByLonger = true; break;
+                          }
+                      }
+
+                      if(!alreadyCoveredByLonger) { // 如果未被更长模式覆盖
+                           const score = scoringConfig.patterns.endingSpecials[ending];
+                           addFeature(`结尾靓号 (${ending})`, score * endingWeight, 'pattern', patternKeyBase, ending);
+                           // (可选) 标记子模式为已检测 (例如检测8888后标记888)
+                            if (len >= 3) {
+                                for (let subLen = len - 1; subLen >= 1; subLen--) {
+                                    const subEnding = ending.slice(-subLen);
+                                    detectedPatterns.add(`end-${subLen}-${subEnding}`);
+                                    // 补充标记豹子等通用模式
+                                     const subLeopard = subEnding.match(/^(.)\1+$/);
+                                     if(subLeopard && subLen >= 3){
+                                         detectedPatterns.add(`end-leopard-${subLeopard[1]}-${subLen}`);
+                                     }
+                                }
+                            }
+                           // endingPatternFound = true; // 标记找到显著模式
+                      }
+                      continue; // 处理完当前长度的精确匹配, 继续下一个长度
+                 }
+
+                 // 2. 如果没有精确匹配, 检查通用模式 (豹子, 顺子, AABB等)
+
+                 // 通用豹子检查 (AAA...) - 跳过'4' (已单独处理)
+                 const leopardMatch = ending.match(/^(.)\1+$/);
+                 if (leopardMatch && len >= 3 && leopardMatch[1] !== '4') {
+                     const digit = leopardMatch[1];
+                     const count = len;
+                     const scoreMap = scoringConfig.patterns.leopard[digit];
+                      const patternKey = `end-leopard-${digit}-${count}`;
+                     if (scoreMap && scoreMap[count] && !detectedPatterns.has(patternKey)) {
+                          addFeature(`结尾豹子 (${ending})`, scoreMap[count] * endingWeight, 'pattern', patternKey, ending);
+                          // 标记子豹子模式
+                           for(let subLen=count-1; subLen>=3; subLen--){
+                               detectedPatterns.add(`end-leopard-${digit}-${subLen}`);
+                               detectedPatterns.add(`end-${subLen}-${digit.repeat(subLen)}`); // 同时标记精确结尾
+                           }
+                          continue; // 处理完豹子, 继续下一个长度
+                     }
+                 }
+
+                 // 通用顺子检查 (123..., 987..., 135..., 975...)
+                 if (len >= 3) {
+                      let isAscStraight = true, isDescStraight = true, isAscStep = true, isDescStep = true;
+                      const firstDigitInt = parseInt(ending[0]);
+                      let step = 0;
+                      if (len > 1) { step = parseInt(ending[1]) - firstDigitInt; }
+
+                      for (let i = 1; i < len; i++) {
+                          const current = parseInt(ending[i]);
+                          const prev = parseInt(ending[i-1]);
+                          if (current !== prev + 1) isAscStraight = false;
+                          if (current !== prev - 1) isDescStraight = false;
+                          // 检查步进一致性
+                          if (len > 1 && current !== prev + step) isAscStep = false;
+                      }
+                      // 区分升/降/步进
+                      isDescStep = isAscStep && step < 0; // 降步进
+                      isAscStep = isAscStep && step > 1; // 升步进 (步长>1)
+                      // 正常升/降序
+                      isAscStraight = isAscStraight && step === 1;
+                      isDescStraight = isDescStraight && step === -1;
+
+
+                     let straightScoreBase = scoringConfig.patterns.straight[len] || 0; // 获取基础顺子分
+                     if (straightScoreBase > 0) {
+                         if (isAscStraight) {
+                             let patternKey = `end-straight-asc-${len}`;
+                             if (!detectedPatterns.has(patternKey)) {
+                                 addFeature(`结尾顺子 (${ending})`, straightScoreBase * endingWeight, 'pattern', patternKey, ending);
+                                  continue;
+                             }
+                         } else if (isDescStraight) {
+                             let patternKey = `end-straight-desc-${len}`;
+                             if (!detectedPatterns.has(patternKey)) {
+                                 addFeature(`结尾倒顺 (${ending})`, straightScoreBase * scoringConfig.patterns.descendingStraightMultiplier * endingWeight, 'pattern', patternKey, ending);
+                                  continue;
+                             }
+                         } else if (isAscStep) {
+                             let patternKey = `end-step-asc-${len}`;
+                              if (!detectedPatterns.has(patternKey)) {
+                                 addFeature(`结尾升步 (${ending})`, straightScoreBase * scoringConfig.patterns.stepStraightMultiplier * endingWeight, 'pattern', patternKey, ending);
+                                  continue;
+                              }
+                         } else if (isDescStep) {
+                              let patternKey = `end-step-desc-${len}`;
+                              if (!detectedPatterns.has(patternKey)) {
+                                 addFeature(`结尾降步 (${ending})`, straightScoreBase * scoringConfig.patterns.stepStraightMultiplier * scoringConfig.patterns.descendingStraightMultiplier * endingWeight, 'pattern', patternKey, ending);
+                                  continue;
+                              }
+                         }
+                     }
+                 } // 结束顺子检查
+
+                 // 3. 通用结构模式检查 (AABB, ABAB, ABBA等特定长度)
+                 // 辅助函数检查通用结构
+                  const checkGenericEndingPattern = (patternRegex, patternName, scoreKey, length) => {
+                      if (len === length && patternRegex.test(ending)) { // 检查长度和正则匹配
+                          const patternKey = `end-${length}-${patternName}`; // 创建通用模式键名
+                          const score = scoringConfig.patterns[scoreKey] || 0; // 获取分数
+                          if (score > 0 && !detectedPatterns.has(patternKey)) { // 如果有分且未检测过
+                              // 避免与 endingSpecials 中的精确匹配重复计分
+                              if(scoringConfig.patterns.endingSpecials[ending] === undefined) {
+                                   addFeature(`结尾 ${patternName} (${ending})`, score * endingWeight, 'pattern', patternKey, ending);
+                                   return true; // 模式已应用
+                              }
+                          }
+                      }
+                      return false; // 未应用
+                  };
+
+                  // 应用检查
+                  if (len === 4) {
+                      if (checkGenericEndingPattern(/(.)\1(.)\2/, 'AABB', 'AABB', 4)) continue;
+                      if (checkGenericEndingPattern(/(.)(.)\1\2/, 'ABAB', 'ABAB', 4)) continue;
+                      if (checkGenericEndingPattern(/(.)(.)\2\1/, 'ABBA', 'ABBA', 4)) continue;
+                  } else if (len === 6) {
+                      if (checkGenericEndingPattern(/(.)\1(.)\2(.)\3/, 'AABBCC', 'AABBCC', 6)) continue;
+                      if (checkGenericEndingPattern(/(.)(.)(.)\1\2\3/, 'ABCABC', 'ABCABC', 6)) continue;
+                      if (checkGenericEndingPattern(/(.)(.)\1\2\1\2/, 'ABABAB', 'ABABAB', 6)) continue;
+                  } else if (len === 8) {
+                       if (checkGenericEndingPattern(/(.)\1{3}(.)\2{3}/, 'AAAABBBB', 'AAAABBBB', 8)) continue;
+                       if (checkGenericEndingPattern(/(.)\1(.)\2(.)\3(.)\4/, 'AABBCCDD', 'AABBCCDD', 8)) continue;
+                       if (checkGenericEndingPattern(/(.)(.)\1\2\1\2\1\2/, 'ABABABAB', 'ABABABAB', 8)) continue;
+                  }
+
+                 // 4. 回文检查 (后6位或后8位)
+                 if ((len === 6 || len === 8) && ending === ending.split('').reverse().join('')) {
+                     const patternKey = `end-${len}-palindrome`;
+                      if (!detectedPatterns.has(patternKey)) {
+                         addFeature(`结尾回文 (${ending})`, scoringConfig.patterns.palindromeScore * endingWeight, 'pattern', patternKey, ending);
+                          continue; // 处理完回文, 继续下一个长度
+                     }
+                 }
+
+            } // 结束结尾长度循环
+
+
+            // --- 5.B 中间模式匹配 (中间4位 - 使用 middleWeight) ---
+            const middle4 = segments.middle4;
+            // 特殊处理: 如果中间是4444, 已在全局处理过, 这里跳过
+            if (middle4 !== '4444') {
+                let middlePatternFound = false; // 标记是否找到中间模式
+                // 检查中间豹子 (非4)
+                const m4LeopardMatch = middle4.match(/^(.)\1{3}$/);
+                if (m4LeopardMatch && m4LeopardMatch[1] !== '4') {
+                    const digit = m4LeopardMatch[1];
+                    const scoreMap = scoringConfig.patterns.leopard[digit];
+                    if (scoreMap && scoreMap[4]) {
+                        const patternKey = `mid-leopard-${digit}-4`;
+                         if(!detectedPatterns.has(patternKey)){
+                             addFeature(`中间豹子 (${middle4})`, scoreMap[4] * middleWeight, 'pattern', patternKey, middle4);
+                             middlePatternFound = true;
+                         }
+                    }
+                }
+                // 检查中间 AABB, ABAB, ABBA (如果豹子未匹配)
+                if (!middlePatternFound && /(.)\1(.)\2/.test(middle4) && scoringConfig.patterns.AABB) {
+                    const patternKey = 'mid-4-AABB';
+                     if(!detectedPatterns.has(patternKey)){
+                         addFeature(`中间 AABB (${middle4})`, scoringConfig.patterns.AABB * middleWeight, 'pattern', patternKey, middle4);
+                         middlePatternFound = true;
+                     }
+                }
+                if (!middlePatternFound && /(.)(.)\1\2/.test(middle4) && scoringConfig.patterns.ABAB) {
+                     const patternKey = 'mid-4-ABAB';
+                     if(!detectedPatterns.has(patternKey)){
+                         addFeature(`中间 ABAB (${middle4})`, scoringConfig.patterns.ABAB * middleWeight, 'pattern', patternKey, middle4);
+                         middlePatternFound = true;
+                     }
+                }
+                if (!middlePatternFound && /(.)(.)\2\1/.test(middle4) && scoringConfig.patterns.ABBA) {
+                     const patternKey = 'mid-4-ABBA';
+                     if(!detectedPatterns.has(patternKey)){
+                         addFeature(`中间 ABBA (${middle4})`, scoringConfig.patterns.ABBA * middleWeight, 'pattern', patternKey, middle4);
+                         // middlePatternFound = true; // ABBA 优先级较低, 不阻止后续检查
+                     }
+                }
+                 // (可选) 在此添加中间顺子检查
+            }
+
+
+            // --- 5.C 全局模式和特殊组合 (使用 globalWeight) ---
+            // 检查长顺子 (9, 10, 11位)
+            for(let len = 11; len >= 9; len--){
+                 // 只检查整个号码的前 len 位是否构成顺子
+                 const subStr = numberStr.substring(0, len);
+                 let isAscStraight = true; let isDescStraight = true;
+                  for (let i = 1; i < len; i++) {
+                      const current = parseInt(subStr[i]);
+                      const prev = parseInt(subStr[i-1]);
+                      if (current !== prev + 1) isAscStraight = false;
+                      if (current !== prev - 1) isDescStraight = false;
+                  }
+                  if(!isAscStraight && !isDescStraight) continue; // 都不是顺子, 检查更短长度
+
+                 let straightScoreBase = scoringConfig.patterns.straight[len] || 0; // 获取基础分
+                 if (straightScoreBase > 0) {
+                      if (isAscStraight) {
+                           let patternKey = `global-straight-asc-${len}`;
+                           if (!detectedPatterns.has(patternKey)) {
+                               addFeature(`全局顺子 (${len}位)`, straightScoreBase * globalWeight, 'pattern', patternKey);
+                               break; // 找到最长全局顺子, 停止检查更短的
+                           }
+                      } else if (isDescStraight) {
+                           let patternKey = `global-straight-desc-${len}`;
+                           if (!detectedPatterns.has(patternKey)) {
+                               addFeature(`全局倒顺 (${len}位)`, straightScoreBase * scoringConfig.patterns.descendingStraightMultiplier * globalWeight, 'pattern', patternKey);
+                               break; // 找到最长全局顺子
+                           }
+                      }
+                 }
+                 // 如果已添加全局顺子特征, 退出循环
+                 if(detectedPatterns.has(`global-straight-asc-${len}`) || detectedPatterns.has(`global-straight-desc-${len}`)) break;
+            }
+
+             // 全局检查正面特殊组合 (负面已处理)
+            for (const combo in scoringConfig.patterns.specialCombos) {
+                 if (scoringConfig.patterns.specialCombos[combo] > 0) { // 只检查正分组合
+                      // 使用正则查找所有出现位置
+                      const regex = new RegExp(combo.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'); // 转义正则特殊字符
+                      let match;
+                      while((match = regex.exec(numberStr)) !== null) { // 循环查找所有匹配项
+                          const patternKey = `globalCombo-${combo}-${match.index}`; // 创建唯一键名 (组合+位置)
+                          // 简单处理: 只要未检测过这个特定位置的组合, 就添加分数
+                          if (!detectedPatterns.has(patternKey)) {
+                               // (可选) 复杂逻辑: 检查此组合是否完全包含在已检测的更高价值模式内
+                               // 例如: 找到结尾8888后, 不再为全局匹配到的'88'加分. (当前简化逻辑未实现)
+                               addFeature(`含吉祥组合 (${combo})`, scoringConfig.patterns.specialCombos[combo] * globalWeight, 'pattern', patternKey);
+                          }
+                      }
+                 }
+            }
+
+
+            // --- 6. 计算最终分数 ---
+            let finalScore = baseScore + featureScore; // 基础分 + 所有特征分
+
+            // 应用市场趋势乘数
+            finalScore *= scoringConfig.marketTrendMultiplier_2025;
+
+            // 确保分数不为负 (可选, 根据业务逻辑决定)
+            finalScore = Math.max(0, Math.round(finalScore)); // 取整并确保最低为0
+
+            // --- 7. 估算价格范围/等级 (基于最终分数 - 阈值可能需要根据实际调整) ---
+            let estimatedPrice = `${finalScore.toFixed(0)} 分`; // 默认显示分数
+            let priceRangeCategory = "普通号码"; // 默认等级
+
+            // 根据分数划分等级和估算价格区间 (阈值已根据权重调整略微提高)
+             if (finalScore >= 180000) { // 天价靓号阈值提高
+                 priceRangeCategory = "天价靓号";
+                 estimatedPrice = `¥${(finalScore * 0.55 + 25000).toLocaleString()} ~ ? (极品)`; // 估算公式调整
+             } else if (finalScore >= 40000) { // 顶级靓号阈值提高
+                 priceRangeCategory = "顶级靓号";
+                  estimatedPrice = `¥${(finalScore * 0.45 + 10000).toLocaleString()} ~ ${(finalScore * 0.65 + 30000).toLocaleString()}`;
+             } else if (finalScore >= 10000) { // 大精品阈值提高
+                 priceRangeCategory = "大精品靓号";
+                  estimatedPrice = `¥${(finalScore * 0.35 + 2000).toLocaleString()} ~ ${(finalScore * 0.55 + 12000).toLocaleString()}`;
+             } else if (finalScore >= 2500) { // 精品阈值提高
+                 priceRangeCategory = "精品靓号";
+                  estimatedPrice = `¥${(finalScore * 0.28 + 500).toLocaleString()} ~ ${(finalScore * 0.48 + 3000).toLocaleString()}`;
+             } else if (finalScore >= 800) { // 小精品阈值提高
+                 priceRangeCategory = "小精品号码";
+                  estimatedPrice = `¥${(finalScore * 0.22 + 100).toLocaleString()} ~ ${(finalScore * 0.40 + 1000).toLocaleString()}`;
+             } else if (finalScore >= 200) { // 较好号码阈值提高
+                 priceRangeCategory = "较好号码";
+                  estimatedPrice = `¥${(finalScore * 0.18 + 20).toLocaleString()} ~ ${(finalScore * 0.30 + 200).toLocaleString()}`;
+             } else if (finalScore < 80 && finalScore > 0) { // 一般号码范围调整
+                 priceRangeCategory = "一般号码";
+                  estimatedPrice = `< ¥50 (普通)`;
+             } else if (finalScore <= 0) { // 价值较低/负分
+                 priceRangeCategory = "价值较低";
+                 estimatedPrice = `< ¥10 (较低)`;
+             }
+
+
+            console.timeEnd("evaluatePhoneNumberDetailed_Optimized"); // 计时结束
+
+            // 返回包含所有信息的评估结果对象
+            return {
+                originalNumber: number,
+                formattedNumber: formatPhoneNumber(numberStr), // 格式化后的号码
+                operator: operator, // 运营商
+                baseScore: baseScore, // 基础分
+                featureScore: featureScore, // 特征总分 (应用乘数前)
+                trendFactor: scoringConfig.marketTrendMultiplier_2025, // 市场趋势乘数
+                finalScore: finalScore, // 最终得分
+                features: features, // 详细分数构成列表
+                estimatedPrice: estimatedPrice, // 估算价格字符串
+                priceRangeCategory: priceRangeCategory // 价值等级分类
+            };
+        }
+
+
+        // --- 主要评估处理函数 (逻辑同前) ---
+        function handleEvaluation() {
+            console.log("--- 触发评估 (优化版) ---");
+            if (isProcessing) { // 防止重复点击
+                console.warn("评估已在进行中，请稍候。");
+                return;
+            }
+            if (!checkDOMIntegrity()) { // 检查DOM
+                 displayError("页面组件错误，无法执行评估。");
+                 return;
+            }
+
+            isProcessing = true; // 设置处理中状态
+            resetUI(false); // 重置界面 (不清空输入框)
+
+            if(domElements.evaluateButton) { // 禁用按钮并显示加载状态
+                domElements.evaluateButton.disabled = true;
+                domElements.evaluateButton.classList.add('processing');
+                if(domElements.buttonText) domElements.buttonText.textContent = '查询中...';
+            }
+
+            // 使用 setTimeout 确保UI更新后再执行计算密集任务
+            setTimeout(() => {
+                try {
+                    const numberInput = domElements.phoneNumberInput.value; // 获取输入值
+                    const number = numberInput.trim().replaceAll(/[-\s]/g, ''); // 清理格式
+
+                    if (!/^[1]\d{10}$/.test(number)) { // 验证号码格式
+                        displayError('输入格式错误：请输入有效的11位中国大陆手机号码 (以1开头)。');
+                        // 注意: finally 块会处理按钮状态, 这里不用手动设置 isProcessing = false
+                    } else {
+                        console.log(`开始评估号码: ${number}`);
+                        let valuationResult;
+                        try {
+                            // 调用核心评估函数 (优化版)
+                            valuationResult = evaluatePhoneNumberDetailed(number);
+                        } catch (evalError) { // 捕获评估函数内部错误
+                            logError(evalError, "evaluatePhoneNumberDetailed_Optimized");
+                            displayError("价值评估计算时发生内部错误，结果可能不完整或为默认值。");
+                            valuationResult = createDefaultValuation(number); // 提供默认结果
+                        }
+
+                        try {
+                             // 显示评估结果
+                             displayResults(valuationResult);
+                        } catch (displayErrorInternal) { // 捕获显示结果时错误
+                              logError(displayErrorInternal, "displayResults");
+                              displayError("显示结果时发生内部错误，请检查控制台。");
+                              // 尝试至少显示号码
+                              if(domElements.resultNumberSpan) domElements.resultNumberSpan.textContent = formatPhoneNumber(number);
+                        }
+                    }
+                } catch (mainError) { // 捕获处理流程中的其他未知错误
+                    logError(mainError, "主评估处理程序");
+                    displayError("处理请求时发生未知错误，请稍后重试或联系管理员。");
+                } finally {
+                     // 无论成功或失败, 总是重置处理状态和按钮状态
+                     isProcessing = false;
+                     if (domElements.evaluateButton) {
+                         domElements.evaluateButton.disabled = false;
+                         domElements.evaluateButton.classList.remove('processing');
+                          if(domElements.buttonText) domElements.buttonText.textContent = '查询与评估';
+                     }
+                     console.log("评估流程结束，按钮/状态已重置。");
+                }
+            }, 50); // 延迟50毫秒执行
+
+        } // 结束 handleEvaluation 函数
+
+
+        // --- 事件监听器 (增加输入框自动格式化) ---
+        document.addEventListener('DOMContentLoaded', () => { // 页面加载完成后执行
+            if (!checkDOMIntegrity()) { // 页面加载时检查DOM
+                 const container = document.querySelector('.container');
+                 if(container){ // 如果容器存在, 显示初始化错误
+                     const errorDiv = document.createElement('div');
+                     errorDiv.id = 'initErrorMessage';
+                     errorDiv.style.color = 'red';
+                     errorDiv.style.fontWeight = 'bold';
+                     errorDiv.style.marginTop = '15px';
+                     errorDiv.textContent = '页面加载不完整，部分功能可能无法使用。请尝试刷新。';
+                     container.appendChild(errorDiv);
+                 }
+                 if(domElements.evaluateButton) domElements.evaluateButton.disabled = true; // 禁用按钮
+                 return; // 停止后续设置
+            }
+
+            // 监听按钮点击
+            domElements.evaluateButton.addEventListener('click', handleEvaluation);
+
+            // 监听输入框回车键
+            domElements.phoneNumberInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault(); // 阻止默认行为 (如表单提交)
+                    handleEvaluation(); // 触发评估
+                }
+            });
+
+            // 监听输入框输入事件 (用于自动格式化和清除错误)
+            domElements.phoneNumberInput.addEventListener('input', (e) => {
+                 // 清除错误消息
+                 if (domElements.errorMessage.style.display === 'block') {
+                    domElements.errorMessage.style.display = 'none';
+                }
+
+                // 自动格式化: 1XX XXXX XXXX
+                 const input = e.target;
+                 const cursorPos = input.selectionStart; // 记录光标位置
+                 let value = input.value.replace(/\D/g, ''); // 移除所有非数字字符
+
+                 // 限制最大长度为11位
+                 if (value.length > 11) {
+                     value = value.substring(0, 11);
+                 }
+
+                 // 根据长度添加空格
+                 let formattedValue = '';
+                 if (value.length > 7) {
+                     formattedValue = `${value.substring(0, 3)} ${value.substring(3, 7)} ${value.substring(7)}`;
+                 } else if (value.length > 3) {
+                     formattedValue = `${value.substring(0, 3)} ${value.substring(3)}`;
+                 } else {
+                     formattedValue = value;
+                 }
+
+                 // 更新输入框的值
+                 input.value = formattedValue;
+
+                 // 尝试恢复光标位置 (处理因添加/删除空格导致的位置变化)
+                 // 注意: 这是一个简化的光标处理逻辑, 复杂编辑下可能不完美
+                 let originalValue = e.target.value; // 获取格式化前的值 (可能含有非数字)
+                 let diff = formattedValue.length - originalValue.replace(/\s/g, '').length + (originalValue.match(/\s/g) || []).length; // 计算长度差和空格数差
+                 let newCursorPos = cursorPos + diff;
+
+                 // 简单的光标位置校正
+                  if (cursorPos > 0 && originalValue[cursorPos - 1] === ' ' && formattedValue[cursorPos] !== ' ' && formattedValue.length > originalValue.length) {
+                     // 输入数字时, 如果光标前是空格, 可能需要向后移动一位
+                     newCursorPos = cursorPos + 1;
+                 } else if (cursorPos > 0 && formattedValue[cursorPos - 1] === ' ' && originalValue.length > formattedValue.length) {
+                     // 删除数字导致空格消失时, 可能需要向前移动一位
+                     newCursorPos = cursorPos -1;
+                 } else {
+                      // 基础计算：光标位置应该大致等于原位置加上新增空格数减去删除的数字位数
+                      let spacesBeforeCursorNew = (formattedValue.substring(0, cursorPos + diff).match(/\s/g) || []).length;
+                      let spacesBeforeCursorOld = (originalValue.substring(0, cursorPos).match(/\s/g) || []).length;
+                      newCursorPos = cursorPos + (spacesBeforeCursorNew - spacesBeforeCursorOld);
+                 }
+
+
+                 // 确保光标位置在合法范围内
+                 newCursorPos = Math.max(0, Math.min(formattedValue.length, newCursorPos));
+
+                 // 仅在输入框获得焦点时设置光标, 避免潜在错误
+                 if (document.activeElement === input) {
+                    try { // 添加 try-catch 以防万一
+                       input.setSelectionRange(newCursorPos, newCursorPos);
+                    } catch (setSelectionError){
+                        console.warn("设置光标位置时出错:", setSelectionError);
+                    }
+                 }
+            });
+
+            console.log("手机号码价值评估页面 (权重优化版) 已加载并准备就绪。");
+        });
+
+    </script>
+
+</body>
+</html>

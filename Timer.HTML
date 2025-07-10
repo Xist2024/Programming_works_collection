@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔方计时秒表</title>
+    <style>
+        @font-face {
+            font-family: 'Digital-7';
+            src: url('https://fonts.cdnfonts.com/s/14896/Digital-7.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            font-family: 'Digital-7', monospace;
+            user-select: none;
+            overflow: hidden;
+        }
+        #timer {
+            font-size: 20vw;
+            color: #fff;
+            text-align: center;
+            font-weight: normal;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+    <div id="timer">0.0000</div>
+    <script>
+        class Stopwatch {
+            constructor(displayElement) {
+                this.display = displayElement;
+                this.isRunning = false;
+                this.startTime = 0;
+                this.elapsedTime = 0;
+                this.animationFrameId = null;
+
+                this.bindEvents();
+                this.updateDisplay();
+            }
+
+            formatTime(ms) {
+                return (ms / 1000).toFixed(4);
+            }
+
+            updateDisplay() {
+                this.display.textContent = this.formatTime(this.elapsedTime);
+            }
+
+            tick() {
+                if (this.isRunning) {
+                    this.elapsedTime = Date.now() - this.startTime;
+                    this.updateDisplay();
+                    this.animationFrameId = requestAnimationFrame(() => this.tick());
+                }
+            }
+
+            startStop() {
+                if (!this.isRunning) {
+                    this.startTime = Date.now() - this.elapsedTime;
+                    this.isRunning = true;
+                    this.tick();
+                } else {
+                    this.isRunning = false;
+                    cancelAnimationFrame(this.animationFrameId);
+                }
+            }
+
+            reset() {
+                if (!this.isRunning) {
+                    this.elapsedTime = 0;
+                    this.updateDisplay();
+                }
+            }
+
+            bindEvents() {
+                // 左键或触摸开始/停止
+                ['click', 'touchstart'].forEach(eventType => {
+                    document.addEventListener(eventType, (e) => {
+                        if (eventType === 'click' && e.button !== 0) return;
+                        e.preventDefault();
+                        this.startStop();
+                    });
+                });
+
+                // 右键重置
+                document.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.reset();
+                });
+            }
+        }
+
+        const timerDisplay = document.getElementById('timer');
+        new Stopwatch(timerDisplay);
+    </script>
+</body>
+</html>

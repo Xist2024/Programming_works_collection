@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码生成器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #inputContainer {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #inputText {
+            width: 300px;
+            padding: 8px;
+            margin: 5px;
+        }
+        #qrOutput {
+            margin-top: 20px;
+        }
+        #previewImage {
+            max-width: 300px;
+            margin: 10px 0;
+            display: none;
+        }
+        .button-container {
+            margin-bottom: 20px;
+        }
+        .button-container button {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h2>二维码生成器</h2>
+    <div class="button-container">
+        <button onclick="setQRCodeType('text')">生成文字二维码</button>
+        <button onclick="setQRCodeType('url')">生成网页二维码</button>
+    </div>
+    <div id="inputContainer">
+        <input type="text" id="inputText" placeholder="请输入内容">
+        <br>
+        <input type="file" id="imageInput" accept="image/*" style="display: none;">
+        <button onclick="generateQR()">生成二维码</button>
+        <button onclick="document.getElementById('imageInput').click()">选择本地图片</button>
+    </div>
+    <img id="previewImage" alt="图片预览">
+    <div id="qrOutput"></div>
+
+    <script>
+        let qrCode = null;
+        const inputText = document.getElementById('inputText');
+        const imageInput = document.getElementById('imageInput');
+        const previewImage = document.getElementById('previewImage');
+        const qrOutput = document.getElementById('qrOutput');
+        let qrCodeType = 'text'; // 默认二维码类型为文字
+
+        // 设置二维码类型
+        function setQRCodeType(type) {
+            qrCodeType = type;
+            inputText.placeholder = qrCodeType === 'text' ? '请输入文字' : '请输入网址';
+            inputText.value = ''; // 清空输入框
+            qrOutput.innerHTML = ''; // 清空二维码
+            previewImage.style.display = 'none'; // 隐藏图片预览
+        }
+
+        // 生成二维码
+        function generateQR() {
+            const text = inputText.value.trim();
+            if (!text) {
+                alert('请输入内容！');
+                return;
+            }
+
+            // 清空之前的二维码
+            qrOutput.innerHTML = '';
+            previewImage.style.display = 'none';
+
+            // 根据二维码类型生成二维码
+            qrCode = new QRCode(qrOutput, {
+                text: text,
+                width: 256,
+                height: 256,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // 处理图片选择
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const imgData = event.target.result;
+                    // 显示图片预览
+                    previewImage.src = imgData;
+                    previewImage.style.display = 'block';
+                    // 将图片路径或数据URL填入输入框
+                    inputText.value = imgData;
+                    // 清空二维码区域
+                    qrOutput.innerHTML = '';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 按回车键生成二维码
+        inputText.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQR();
+            }
+        });
+    </script>
+</body>
+</html>
