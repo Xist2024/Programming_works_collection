@@ -76,6 +76,7 @@ Timer.html：一个网页秒表
 
 丢番图方程求解器：暴力计算方程a² + b² + ... + z² = x*n²的右侧所有解，图中为计算方程也a² + b² + ... + z² = 8888*88888888²的解
 <img width="905" height="477" alt="b12bd9a7a1666039573077ca0863daa" src="https://github.com/user-attachments/assets/db159446-fcb3-46cf-b1c0-2eb377f86b7e" />
+
 这依赖于我自己发现的数学定律
 <img width="1856" height="536" alt="image" src="https://github.com/user-attachments/assets/e5e94534-78f1-4379-938c-cef55df869a1" />
 
